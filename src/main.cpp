@@ -125,8 +125,8 @@ void loadWorldFromDisk(BaseBlock**** MAP)
 
 	uint32_t fileSize = 0;
 
-	const char_const16_t filePath[] __attribute__((aligned(4))) = u"\\fls0\\MineFx\\world_1.mfxw";
-	int world_file_info = File_FindFirst(filePath, &findHandle, nullptr, &findInfoBuf);
+	alignas(4) const char16_t filePath[] = u"\\fls0\\MineFx\\world_1.mfxw";
+	int world_file_info = File_FindFirst((const char_const16_t*)filePath, &findHandle, nullptr, &findInfoBuf);
 
 	if (world_file_info == 0) {
         fileSize = findInfoBuf.fileSize;

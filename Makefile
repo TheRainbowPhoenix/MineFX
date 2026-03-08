@@ -34,7 +34,7 @@ APP_HH3 := $(APP_ELF:.elf=.hh3)
 
 AS_SOURCES:=$(shell find $(SOURCEDIR) -name '*.S')
 CC_SOURCES:=$(shell find $(SOURCEDIR) -name '*.c')
-CXX_SOURCES:=$(wildcard $(SOURCEDIR)/*.cpp) $(wildcard $(SOURCEDIR)/pre_renderer/*.cpp) $(wildcard $(SOURCEDIR)/utils/*.cpp)
+CXX_SOURCES:=$(wildcard $(SOURCEDIR)/*.cpp)
 OBJECTS := $(addprefix $(BUILDDIR)/,$(AS_SOURCES:.S=.o)) \
 	$(addprefix $(BUILDDIR)/,$(CC_SOURCES:.c=.o)) \
 	$(addprefix $(BUILDDIR)/,$(CXX_SOURCES:.cpp=.o))
