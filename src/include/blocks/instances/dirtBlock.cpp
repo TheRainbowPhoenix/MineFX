@@ -1,3 +1,4 @@
+#include <sdk/os/lcd.h>
 #include "../baseBlock.cpp"
 
 class DirtBlockType : public BaseBlockType

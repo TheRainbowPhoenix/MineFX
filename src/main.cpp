@@ -129,7 +129,7 @@ void loadWorldFromDisk(BaseBlock**** MAP)
 	int world_file_info = File_FindFirst((const char_const16_t*)filePath, &findHandle, nullptr, &findInfoBuf);
 
 	if (world_file_info == 0) {
-        fileSize = findInfoBuf.fileSize;
+        fileSize = findInfoBuf.size;
 		//saveWorldToDisk(MAP);
 		//loadWorldFromDisk(MAP);
     } else {
@@ -238,14 +238,14 @@ void loadWorldFromDisk(BaseBlock**** MAP)
 
 void drawLoadingScreen()
 {
-	LCD_ClearScreen(LCD_MakeColor(0, 0, 0));
+	square(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGT, LCD_MakeColor(0, 0, 0));
 	Debug_Printf(0, 0, true, 0, "Loading...");
 	LCD_Refresh();
 }
 
 void drawSavingScreen()
 {
-	LCD_ClearScreen(LCD_MakeColor(0, 0, 0));
+	square(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGT, LCD_MakeColor(0, 0, 0));
 	Debug_Printf(0, 0, true, 0, "Saving...");
 	LCD_Refresh();
 }
@@ -311,7 +311,7 @@ void renderEntireScreen(BaseBlock**** rn_MAP)
 
 void clearEntireScreen()
 {
-	LCD_ClearScreen(LCD_MakeColor(110, 114, 127));
+	square(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGT, LCD_MakeColor(110, 114, 127));
 }
 
 int main() {
@@ -343,141 +343,77 @@ int main() {
 
 	LCD_Refresh();
 
-	while (running) {
 
+    bool key_up = false;
+    bool key_down = false;
+    bool key_left = false;
+    bool key_right = false;
+
+	while (running) {
 		struct Input_Event event __attribute__((aligned(4)));
 		while (GetInput(&event, 0, 0x10) == 0)
 		{
-
-
-		if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_POWER_CLEAR){ //Use testKey() to test if a specific key is pressed
-    		    running = false;
-				break;
-    		}
-		else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_UP){
-				y_offset += CAMERA_OFFSET_CHANGE;
-    		}
-		else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_DOWN){
-				y_offset -= CAMERA_OFFSET_CHANGE;
-    		}
-		else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_LEFT){
-				x_offset += CAMERA_OFFSET_CHANGE;
-    		}
-		else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_RIGHT){
-				x_offset -= CAMERA_OFFSET_CHANGE;
-    		}
-			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_PLUS){
-				BLOCK_WIDTH += 16;
-				BLOCK_HEIGHT += 17;
-				calcScaleConstants();
-    		}
-			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_MINUS){
-				BLOCK_WIDTH -= 16;
-				BLOCK_HEIGHT -= 17;
-				calcScaleConstants();
-    		}
-			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_3){
-				if (cursor_x < MAP_SIZE_X)
-				{
-					cursor_x++;
-				}
-    		}
-			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_7){
-				if (cursor_x > 0)
-				{
-					cursor_x--;
-				}
-    		}
-			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_1){
-				if (cursor_z < MAP_SIZE_Z)
-				{
-					cursor_z++;
-				}
-    		}
-			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_9){
-				if (cursor_z > 0)
-				{
-					cursor_z--;
-				}
-    		}
-			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_Y){
-				if (cursor_y < MAP_SIZE_Y)
-				{
-					cursor_y++;
-				}
-    		}
-			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_X){
-				if (cursor_y > 0)
-				{
-					cursor_y--;
-				}
-    		}
-			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_BACKSPACE){
-    			if (cursor_x >= 0 && cursor_x < MAP_SIZE_X &&
-				    cursor_y >= 0 && cursor_y < MAP_SIZE_Y &&
-				    cursor_z >= 0 && cursor_z < MAP_SIZE_Z
-				)
-				{
-				    delete MAP[cursor_y][cursor_x][cursor_z];
-				    MAP[cursor_y][cursor_x][cursor_z] = new AirBlock();
-				}
-    		}
-			else if (event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_COMMA)
-			{
-				BLOCK_PALETTE_INDEX++;
-				if (BLOCK_PALETTE_INDEX > 5)
-				{
-					BLOCK_PALETTE_INDEX = 0;
+			if (event.type == EVENT_KEY) {
+				bool is_down = (event.data.key.direction == KEY_PRESSED);
+				bool is_up = (event.data.key.direction == KEY_RELEASED);
+				
+				if (is_down || is_up) {
+					bool state = is_down;
+					switch (event.data.key.keyCode) {
+						case KEYCODE_UP: key_up = state; break;
+						case KEYCODE_DOWN: key_down = state; break;
+						case KEYCODE_LEFT: key_left = state; break;
+						case KEYCODE_RIGHT: key_right = state; break;
+						case KEYCODE_POWER_CLEAR: if (is_down) running = false; break;
+						case KEYCODE_PLUS: if (is_down) { BLOCK_WIDTH += 16; BLOCK_HEIGHT += 17; calcScaleConstants(); } break;
+						case KEYCODE_MINUS: if (is_down) { BLOCK_WIDTH -= 16; BLOCK_HEIGHT -= 17; calcScaleConstants(); } break;
+						case KEYCODE_3: if (is_down && cursor_x < MAP_SIZE_X) cursor_x++; break;
+						case KEYCODE_7: if (is_down && cursor_x > 0) cursor_x--; break;
+						case KEYCODE_1: if (is_down && cursor_z < MAP_SIZE_Z) cursor_z++; break;
+						case KEYCODE_9: if (is_down && cursor_z > 0) cursor_z--; break;
+						case KEYCODE_Y: if (is_down && cursor_y < MAP_SIZE_Y) cursor_y++; break;
+						case KEYCODE_X: if (is_down && cursor_y > 0) cursor_y--; break;
+						case KEYCODE_BACKSPACE:
+							if (is_down && cursor_x >= 0 && cursor_x < MAP_SIZE_X && cursor_y >= 0 && cursor_y < MAP_SIZE_Y && cursor_z >= 0 && cursor_z < MAP_SIZE_Z) {
+								delete MAP[cursor_y][cursor_x][cursor_z];
+								MAP[cursor_y][cursor_x][cursor_z] = new AirBlock();
+							}
+							break;
+						case KEYCODE_COMMA:
+							if (is_down) {
+								BLOCK_PALETTE_INDEX++;
+								if (BLOCK_PALETTE_INDEX > 5) BLOCK_PALETTE_INDEX = 0;
+							}
+							break;
+						case KEYCODE_EXE:
+							if (is_down) {
+								switch (BLOCK_PALETTE_INDEX) {
+									case 0: delete MAP[cursor_y][cursor_x][cursor_z]; MAP[cursor_y][cursor_x][cursor_z] = new DirtBlock(); break;
+									case 1: delete MAP[cursor_y][cursor_x][cursor_z]; MAP[cursor_y][cursor_x][cursor_z] = new GrassBlock(); break;
+									case 2: delete MAP[cursor_y][cursor_x][cursor_z]; MAP[cursor_y][cursor_x][cursor_z] = new LeaveBlock(); break;
+									case 3: delete MAP[cursor_y][cursor_x][cursor_z]; MAP[cursor_y][cursor_x][cursor_z] = new LogBlock(); break;
+									case 4: delete MAP[cursor_y][cursor_x][cursor_z]; MAP[cursor_y][cursor_x][cursor_z] = new PathBlock(); break;
+									case 5: delete MAP[cursor_y][cursor_x][cursor_z]; MAP[cursor_y][cursor_x][cursor_z] = new StoneBlock(); break;
+								}
+							}
+							break;
+						case KEYCODE_EQUALS:
+							if (is_down) { cursor_x = 0; cursor_y = 0; cursor_z = 0; }
+							break;
+					}
 				}
 			}
-			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_EXE){
-    			switch (BLOCK_PALETTE_INDEX)
-				{
-				case 0:
-				    delete MAP[cursor_y][cursor_x][cursor_z];
-				    MAP[cursor_y][cursor_x][cursor_z] = new DirtBlock();
-					break;
-				
-				case 1:
-				    delete MAP[cursor_y][cursor_x][cursor_z];
-				    MAP[cursor_y][cursor_x][cursor_z] = new GrassBlock();
-					break;
-
-				case 2:
-				    delete MAP[cursor_y][cursor_x][cursor_z];
-				    MAP[cursor_y][cursor_x][cursor_z] = new LeaveBlock();
-					break;
-				
-				case 3:
-				    delete MAP[cursor_y][cursor_x][cursor_z];
-				    MAP[cursor_y][cursor_x][cursor_z] = new LogBlock();
-					break;
-
-				case 4:
-				    delete MAP[cursor_y][cursor_x][cursor_z];
-				    MAP[cursor_y][cursor_x][cursor_z] = new PathBlock();
-					break;
-
-				case 5:
-				    delete MAP[cursor_y][cursor_x][cursor_z];
-				    MAP[cursor_y][cursor_x][cursor_z] = new StoneBlock();
-					break;
-
-				default:
-					break;
-				}
-    		}
-			else if (event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_EQUAL)
-			{
-				cursor_x = 0;
-				cursor_y = 0;
-				cursor_z = 0;
-			}
-			
-			clearEntireScreen();
-			renderEntireScreen(MAP);
-			LCD_Refresh();
 		}
+
+		if (key_up) y_offset += CAMERA_OFFSET_CHANGE;
+		if (key_down) y_offset -= CAMERA_OFFSET_CHANGE;
+		if (key_left) x_offset += CAMERA_OFFSET_CHANGE;
+		if (key_right) x_offset -= CAMERA_OFFSET_CHANGE;
+
+		clearEntireScreen();
+		renderEntireScreen(MAP);
+		LCD_Refresh();
+
 	}
 
 	drawSavingScreen();
@@ -494,7 +430,7 @@ int main() {
     }
     delete[] MAP;                      // Delete the top-level pointer
 
-	LCD_ClearScreen(0);
+	LCD_ClearScreen();
 	LCD_Refresh();
 	return 0;
 }

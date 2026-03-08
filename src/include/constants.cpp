@@ -16,7 +16,7 @@ int BLOCK_HEIGHT = 85; // Block height in pixel
 int BLOCK_TILES_AVR_WIDTH; // Pixel size of block in width
 int BLOCK_TILES_AVR_HEIGHT; // Pixel size of block in height
 
-int DISPLAY_WIDTH, DISPLAY_HEIGT;
+uint32_t DISPLAY_WIDTH, DISPLAY_HEIGT;
 
 int x_offset, y_offset;
 

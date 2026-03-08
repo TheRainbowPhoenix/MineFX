@@ -1,3 +1,4 @@
+#include <sdk/os/lcd.h>
 
 #include "../utils.cpp"
 #pragma once
