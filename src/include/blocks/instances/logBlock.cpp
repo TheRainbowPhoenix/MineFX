@@ -34,9 +34,9 @@ public:
     virtual KeyColorPairMap getTextureTemplateKeys()
     {
         KeyColorPairMap keyColorMap = KeyColorPairMap(4);
-        keyColorMap.add(KeyColorPair('A', color(41, 24, 7)));
-        keyColorMap.add(KeyColorPair('B', color(50, 30, 10)));
-        keyColorMap.add(KeyColorPair('C', color(62, 37, 13)));
+        keyColorMap.add(KeyColorPair('A', LCD_MakeColor(41, 24, 7)));
+        keyColorMap.add(KeyColorPair('B', LCD_MakeColor(50, 30, 10)));
+        keyColorMap.add(KeyColorPair('C', LCD_MakeColor(62, 37, 13)));
 
         return keyColorMap;
     }

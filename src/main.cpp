@@ -1,9 +1,12 @@
-#include <appdef.hpp>
-#include <sdk/calc/calc.hpp>
-#include <sdk/os/lcd.hpp>
-#include <sdk/os/debug.hpp>
-#include <sdk/os/input.hpp>
-#include <sdk/os/file.hpp>
+#include <cstdint>
+#include <cstring>
+#include <appdef.h>
+#include <sdk/os/debug.h>
+#include <sdk/os/lcd.h>
+#include <sdk/os/input.h>
+
+#include <cstdio>
+#include <sdk/os/file.h>
 
 #include "include/blocks/instances/airBlock.cpp"
 #include "include/blocks/instances/dirtBlock.cpp"
@@ -25,7 +28,6 @@ APP_DESCRIPTION("Nothing more than a simple isometric renderer in a Minecraft st
 APP_AUTHOR("theaddonn <theaddonn@gmail.com>");
 APP_VERSION("0.2.2");
 
-extern "C"
 
 BaseBlock* getBlockTypeFromID(uint8_t id)
 {
@@ -52,13 +54,13 @@ BaseBlock* getBlockTypeFromID(uint8_t id)
 
 void saveWorldToDisk(BaseBlock**** MAP)
 {
-    mkdir("\\fls0\\MineFx");
+    File_MakeDir((const char_const16_t*)u"\\fls0\\MineFx");
 
-	int world_file = open("\\fls0\\MineFx\\world_1.mfxw", OPEN_WRITE | OPEN_CREATE);
+	FILE* world_file = fopen("\\fls0\\MineFx\\world_1.mfxw", "wb");
 
-	if (world_file < 0)
+	if (world_file == nullptr)
 	{
-		Debug_Printf(0, 1, true, 0, "Couldn't create file: %d", world_file);
+		Debug_Printf(0, 1, true, 0, "Couldn't create file: %p", world_file);
 		LCD_Refresh();
 		while (true)
 		{
@@ -68,10 +70,7 @@ void saveWorldToDisk(BaseBlock**** MAP)
 
 	uint8_t world_data_buf[WORLD_FORMAT_SIZE + MAP_SIZE_X*MAP_SIZE_Y*MAP_SIZE_Z];
 
-	for (int i = 0; i < sizeof(world_data_buf); i++)
-	{
-		world_data_buf[i] = 0x00;
-	}
+	memset(world_data_buf, 0x00, sizeof(world_data_buf));
 	 
 
 	for (int i = 0; i < WORLD_FORMAT_SIZE; i++)
@@ -97,7 +96,7 @@ void saveWorldToDisk(BaseBlock**** MAP)
 	    }
 	} 
 
-	int world_file_write = write(world_file, world_data_buf, sizeof(world_data_buf));
+	int world_file_write = fwrite(world_data_buf, 1, sizeof(world_data_buf), world_file);
 	if (world_file_write < 0)
 	{
 		Debug_Printf(0, 2, true, 0, "Couldn't write file: %d", world_file_write);
@@ -107,7 +106,7 @@ void saveWorldToDisk(BaseBlock**** MAP)
 		}
 		
 	}
-	int world_file_close = close(world_file);
+	int world_file_close = fclose(world_file);
 	if (world_file_close < 0)
 	{
 		Debug_Printf(0, 3, true, 0, "Couldn't close file: %d", world_file_close);
@@ -122,14 +121,14 @@ void saveWorldToDisk(BaseBlock**** MAP)
 void loadWorldFromDisk(BaseBlock**** MAP)
 {
     int findHandle;
-	struct findInfo findInfoBuf;
+	struct File_FindInfo findInfoBuf __attribute__((aligned(4)));
 
 	uint32_t fileSize = 0;
 
-	int world_file_info = findFirst(L"\\fls0\\MineFx\\world_1.mfxw", &findHandle, nullptr, &findInfoBuf);
+	int world_file_info = File_FindFirst((const char_const16_t*)u"\\fls0\\MineFx\\world_1.mfxw", &findHandle, nullptr, &findInfoBuf);
 
 	if (world_file_info == 0) {
-        fileSize = findInfoBuf.size;
+        fileSize = findInfoBuf.fileSize;
 		//saveWorldToDisk(MAP);
 		//loadWorldFromDisk(MAP);
     } else {
@@ -139,29 +138,29 @@ void loadWorldFromDisk(BaseBlock**** MAP)
 		{
 		}
     }
-	findClose(findHandle);
+	File_FindClose(findHandle);
 
-	int world_file = open("\\fls0\\MineFx\\world_1.mfxw", OPEN_READ);
+	FILE* world_file = fopen("\\fls0\\MineFx\\world_1.mfxw", "rb");
 
-	if (world_file < 0)
+	if (world_file == nullptr)
 	{
-		Debug_Printf(0, 1, true, 0, "Couldn't open file: %d", world_file);
+		Debug_Printf(0, 1, true, 0, "Couldn't open file: %p", world_file);
 		LCD_Refresh();
 		while (true)
 		{
 		}
 	}
 	
-	Debug_Printf(0, 10, true, 0, "Filesize %d", world_file);
+	Debug_Printf(0, 10, true, 0, "Filesize %d", (int)fileSize);
 	LCD_Refresh();
 
 	uint8_t world_data_buf[fileSize];
 
-	int world_file_read = read(world_file, world_data_buf, fileSize);
+	int world_file_read = fread(world_data_buf, 1, fileSize, world_file);
 
 	if (world_file_read < 0)
 	{
-		Debug_Printf(0, 1, true, 0, "Couldn't read file: %d", world_file);
+		Debug_Printf(0, 1, true, 0, "Couldn't read file: %p", world_file);
 		LCD_Refresh();
 		while (true)
 		{
@@ -224,7 +223,7 @@ void loadWorldFromDisk(BaseBlock**** MAP)
 	    }
 	} 
 
-	int world_file_close = close(world_file);
+	int world_file_close = fclose(world_file);
 	if (world_file_close < 0)
 	{
 		Debug_Printf(0, 3, true, 0, "Couldn't close file: %d", world_file_close);
@@ -238,14 +237,14 @@ void loadWorldFromDisk(BaseBlock**** MAP)
 
 void drawLoadingScreen()
 {
-	fillScreen(color(0, 0, 0));
+	LCD_ClearScreen(LCD_MakeColor(0, 0, 0));
 	Debug_Printf(0, 0, true, 0, "Loading...");
 	LCD_Refresh();
 }
 
 void drawSavingScreen()
 {
-	fillScreen(color(0, 0, 0));
+	LCD_ClearScreen(LCD_MakeColor(0, 0, 0));
 	Debug_Printf(0, 0, true, 0, "Saving...");
 	LCD_Refresh();
 }
@@ -311,11 +310,10 @@ void renderEntireScreen(BaseBlock**** rn_MAP)
 
 void clearEntireScreen()
 {
-	fillScreen(color(110, 114, 127));
+	LCD_ClearScreen(LCD_MakeColor(110, 114, 127));
 }
 
-void main() {
-	calcInit(); //backup screen and init some variables
+int main() {
 	
 	initConstants();
 
@@ -346,74 +344,74 @@ void main() {
 
 	while (running) {
 
-		if (Input_IsAnyKeyDown())
+		struct Input_Event event __attribute__((aligned(4)));
+		while (GetInput(&event, 0, 0x10) == 0)
 		{
-			uint32_t key1, key2;    //First create variables
-			getKey(&key1, &key2);    //then read the keys
 
-    		if(testKey(key1, key2, KEY_CLEAR)){ //Use testKey() to test if a specific key is pressed
+
+		if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_POWER_CLEAR){ //Use testKey() to test if a specific key is pressed
     		    running = false;
 				break;
     		}
-    		else if(testKey(key1, key2, KEY_UP)){
+		else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_UP){
 				y_offset += CAMERA_OFFSET_CHANGE;
     		}
-    		else if(testKey(key1, key2, KEY_DOWN)){
+		else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_DOWN){
 				y_offset -= CAMERA_OFFSET_CHANGE;
     		}
-    		else if(testKey(key1, key2, KEY_LEFT)){
+		else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_LEFT){
 				x_offset += CAMERA_OFFSET_CHANGE;
     		}
-    		else if(testKey(key1, key2, KEY_RIGHT)){
+		else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_RIGHT){
 				x_offset -= CAMERA_OFFSET_CHANGE;
     		}
-			else if(testKey(key1, key2, KEY_ADD)){
+			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_PLUS){
 				BLOCK_WIDTH += 16;
 				BLOCK_HEIGHT += 17;
 				calcScaleConstants();
     		}
-			else if(testKey(key1, key2, KEY_SUBTRACT)){
+			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_MINUS){
 				BLOCK_WIDTH -= 16;
 				BLOCK_HEIGHT -= 17;
 				calcScaleConstants();
     		}
-			else if(testKey(key1, key2, KEY_3)){
+			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_3){
 				if (cursor_x < MAP_SIZE_X)
 				{
 					cursor_x++;
 				}
     		}
-			else if(testKey(key1, key2, KEY_7)){
+			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_7){
 				if (cursor_x > 0)
 				{
 					cursor_x--;
 				}
     		}
-			else if(testKey(key1, key2, KEY_1)){
+			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_1){
 				if (cursor_z < MAP_SIZE_Z)
 				{
 					cursor_z++;
 				}
     		}
-			else if(testKey(key1, key2, KEY_9)){
+			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_9){
 				if (cursor_z > 0)
 				{
 					cursor_z--;
 				}
     		}
-			else if(testKey(key1, key2, KEY_Y)){
+			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_Y){
 				if (cursor_y < MAP_SIZE_Y)
 				{
 					cursor_y++;
 				}
     		}
-			else if(testKey(key1, key2, KEY_X)){
+			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_X){
 				if (cursor_y > 0)
 				{
 					cursor_y--;
 				}
     		}
-			else if(testKey(key1, key2, KEY_BACKSPACE)){
+			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_BACKSPACE){
     			if (cursor_x >= 0 && cursor_x < MAP_SIZE_X &&
 				    cursor_y >= 0 && cursor_y < MAP_SIZE_Y &&
 				    cursor_z >= 0 && cursor_z < MAP_SIZE_Z
@@ -423,7 +421,7 @@ void main() {
 				    MAP[cursor_y][cursor_x][cursor_z] = new AirBlock();
 				}
     		}
-			else if (testKey(key1, key2, KEY_COMMA))
+			else if (event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_COMMA)
 			{
 				BLOCK_PALETTE_INDEX++;
 				if (BLOCK_PALETTE_INDEX > 5)
@@ -431,7 +429,7 @@ void main() {
 					BLOCK_PALETTE_INDEX = 0;
 				}
 			}
-			else if(testKey(key1, key2, KEY_EXE)){
+			else if(event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_EXE){
     			switch (BLOCK_PALETTE_INDEX)
 				{
 				case 0:
@@ -468,7 +466,7 @@ void main() {
 					break;
 				}
     		}
-			else if (testKey(key1, key2, KEY_EQUALS))
+			else if (event.type == Input_EventType::KeyDown && event.keycode == KEYCODE_EQUAL)
 			{
 				cursor_x = 0;
 				cursor_y = 0;
@@ -495,7 +493,7 @@ void main() {
     }
     delete[] MAP;                      // Delete the top-level pointer
 
-	LCD_ClearScreen();
+	LCD_ClearScreen(0);
 	LCD_Refresh();
-	calcEnd(); //restore screen and do stuff
+	return 0;
 }

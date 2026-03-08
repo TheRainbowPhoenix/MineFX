@@ -1,73 +1,86 @@
-# run `make all` to compile the .hhk and .bin file, use `make` to compile only the .bin file.
-# The .hhk file is the original format, the bin file is a newer format.
-APP_NAME:=3dRenderer
+SOURCEDIR = src
+BUILDDIR = obj
+OUTDIR = dist
+DEPDIR = .deps
 
-ifndef SDK_DIR
-$(error You need to define the SDK_DIR environment variable, and point it to the sdk/ folder)
-endif
+AS:=sh4a_nofpueb-elf-gcc
+AS_FLAGS:=-gdwarf-5
 
-AS:=sh4-elf-as
-AS_FLAGS:=
+SDK_DIR?=/sdk
 
-CC:=sh4-elf-gcc
-CC_FLAGS:=-ffreestanding -fshort-wchar -Wall -Wextra -O2 -I $(SDK_DIR)/include/ -I $(SDK_DIR)/newlib/sh-elf/include/ -I /home/adrian/hollyhock-2/app_template/src/include/
+DEPFLAGS=-MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
+WARNINGS=-Wall -Wextra
+INCLUDES=-I$(SDK_DIR)/include #-I$(SOURCEDIR)
+DEFINES=
+FUNCTION_FLAGS=-flto=auto -ffat-lto-objects -fno-builtin -ffunction-sections -fdata-sections -gdwarf-5 -O2
+COMMON_FLAGS=$(FUNCTION_FLAGS) $(INCLUDES) $(WARNINGS) $(DEFINES)
 
-CXX:=sh4-elf-g++
-CXX_FLAGS:=-ffreestanding -fno-exceptions -fno-rtti -fshort-wchar -Wall -Wextra -O2 -fpermissive -I $(SDK_DIR)/include/ -m4a-nofpu -I $(SDK_DIR)/newlib/sh-elf/include/ -lstdc++
+CC:=sh4a_nofpueb-elf-gcc
+CC_FLAGS=-std=c23 $(COMMON_FLAGS)
 
-LD:=sh4-elf-gcc
-LD_FLAGS:=-nostartfiles -m4-nofpu -Wno-undef -L$(SDK_DIR)/newlib/sh-elf/lib -lm
+CXX:=sh4a_nofpueb-elf-g++
+CXX_FLAGS=-std=c++20 $(COMMON_FLAGS)
 
-READELF:=sh4-elf-readelf
-OBJCOPY:=sh4-elf-objcopy
+LD:=sh4a_nofpueb-elf-g++
+LD_FLAGS:=$(FUNCTION_FLAGS) -Wl,--gc-sections
+LIBS:=-L$(SDK_DIR) -lsdk
 
-AS_SOURCES:=$(wildcard *.s)
-CC_SOURCES:=$(wildcard *.c)
-CXX_SOURCES := $(wildcard src/*.cpp)
-OBJECTS:=$(AS_SOURCES:.s=.o) $(CC_SOURCES:.c=.o) $(CXX_SOURCES:.cpp=.o)
+READELF:=sh4a_nofpueb-elf-readelf
+OBJCOPY:=sh4a_nofpueb-elf-objcopy
+STRIP:=sh4a_nofpueb-elf-strip
 
-APP_ELF:=$(APP_NAME).hhk
-APP_BIN:=$(APP_NAME).bin
+APP_ELF := $(OUTDIR)/CPapp.elf
+APP_HH3 := $(APP_ELF:.elf=.hh3)
 
-bin: $(APP_BIN) Makefile
+AS_SOURCES:=$(shell find $(SOURCEDIR) -name '*.S')
+CC_SOURCES:=$(shell find $(SOURCEDIR) -name '*.c')
+CXX_SOURCES:=$(shell find $(SOURCEDIR) -name '*.cpp')
+OBJECTS := $(addprefix $(BUILDDIR)/,$(AS_SOURCES:.S=.o)) \
+	$(addprefix $(BUILDDIR)/,$(CC_SOURCES:.c=.o)) \
+	$(addprefix $(BUILDDIR)/,$(CXX_SOURCES:.cpp=.o))
 
-hhk: $(APP_ELF) Makefile
+NOLTOOBJS := $(foreach obj, $(OBJECTS), $(if $(findstring /nolto/, $(obj)), $(obj)))
 
-all: $(APP_ELF) $(APP_BIN) Makefile
+DEPFILES := $(OBJECTS:$(BUILDDIR)/%.o=$(DEPDIR)/%.d)
 
+hh3: $(APP_HH3) Makefile
+elf: $(APP_ELF) Makefile
+
+all: elf hh3
+.DEFAULT_GOAL := all
+.SECONDARY: # Prevents intermediate files from being deleted
+
+.NOTPARALLEL: clean
 clean:
-	rm -f $(OBJECTS) $(APP_ELF) $(APP_BIN)
+	rm -rf $(BUILDDIR) $(OUTDIR) $(DEPDIR)
 
-$(APP_ELF): $(OBJECTS) $(SDK_DIR)/sdk.o linker_hhk.ld
-	$(LD) -T linker_hhk.ld -o $@ $(LD_FLAGS) $(OBJECTS) $(SDK_DIR)/sdk.o
-	$(OBJCOPY) --set-section-flags .hollyhock_name=contents,strings,readonly $(APP_ELF) $(APP_ELF)
-	$(OBJCOPY) --set-section-flags .hollyhock_description=contents,strings,readonly $(APP_ELF) $(APP_ELF)
-	$(OBJCOPY) --set-section-flags .hollyhock_author=contents,strings,readonly $(APP_ELF) $(APP_ELF)
-	$(OBJCOPY) --set-section-flags .hollyhock_version=contents,strings,readonly $(APP_ELF) $(APP_ELF)
+%.hh3: %.elf
+	$(STRIP) -o $@ $^
 
-$(APP_BIN): $(OBJECTS) $(SDK_DIR)/sdk.o linker_bin.ld
-	$(LD) -Wl,--oformat=binary -T linker_bin.ld -o $@ $(LD_FLAGS) $(OBJECTS) $(SDK_DIR)/sdk.o
+$(APP_ELF): $(OBJECTS)
+	@mkdir -p $(dir $@)
+	$(LD) -Wl,-Map $@.map -o $@ $(LD_FLAGS) $^ $(LIBS)
 
-# We're not actually building sdk.o, just telling the user they need to do it
-# themselves. Just using the target to trigger an error when the file is
-# required but does not exist.
-$(SDK_DIR)/sdk.o:
-	$(error You need to build the SDK before using it. Run make in the SDK directory, and check the README.md in the SDK directory for more information)
+$(NOLTOOBJS): FUNCTION_FLAGS+=-fno-lto
 
-%.o: %.s
-	$(AS) $< -o $@ $(AS_FLAGS)
+$(BUILDDIR)/%.o: %.S
+	@mkdir -p $(dir $@)
+	$(AS) -c $< -o $@ $(AS_FLAGS)
 
-%.o: %.c
-	$(CC) -c $< -o $@ $(CC_FLAGS)
+$(BUILDDIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	@mkdir -p $(dir $(DEPDIR)/$<)
+	+$(CC) -c $< -o $@ $(CC_FLAGS) $(DEPFLAGS)
 
-# Break the build if global constructors are present:
-# Read the sections from the object file (with readelf -S) and look for any
-# called .ctors - if they exist, give the user an error message, delete the
-# object file (so that on subsequent runs of make the build will still fail)
-# and exit with an error code to halt the build.
-src/%.o: src/%.cpp
-	$(CXX) -c $< -o $@ $(CXX_FLAGS)
-	@$(READELF) $@ -S | grep ".ctors" > /dev/null && echo "ERROR: Global constructors aren't supported." && rm $@ && exit 1 || exit 0
+$(BUILDDIR)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	@mkdir -p $(dir $(DEPDIR)/$<)
+	+$(CXX) -c $< -o $@ $(CXX_FLAGS) $(DEPFLAGS)
 
+compile_commands.json:
+	$(MAKE) $(MAKEFLAGS) clean
+	bear -- sh -c "$(MAKE) $(MAKEFLAGS) --keep-going all || exit 0"
 
-.PHONY: bin hhk all clean
+.PHONY: elf hh3 all clean compile_commands.json
+
+-include $(DEPFILES)

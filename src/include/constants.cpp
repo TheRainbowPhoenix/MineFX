@@ -1,4 +1,5 @@
-#include <sdk/os/lcd.hpp>
+#include <cstdint>
+#include <sdk/os/lcd.h>
 
 int MAP_SIZE_X = 10; // Map size in x coord
 int MAP_SIZE_Y = 10; // Map size in y coord

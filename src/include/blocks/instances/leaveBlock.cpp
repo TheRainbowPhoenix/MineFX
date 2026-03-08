@@ -8,8 +8,8 @@ public:
     virtual KeyColorPairMap getTextureTemplateKeys()
     {
         KeyColorPairMap keyColorMap = KeyColorPairMap(2);
-        keyColorMap.add(KeyColorPair('A', color(22, 80, 1)));
-        keyColorMap.add(KeyColorPair('B', color(25, 91, 1)));
+        keyColorMap.add(KeyColorPair('A', LCD_MakeColor(22, 80, 1)));
+        keyColorMap.add(KeyColorPair('B', LCD_MakeColor(25, 91, 1)));
 
         return keyColorMap;
     }

@@ -1,4 +1,4 @@
-#include <sdk/calc/calc.hpp>
+
 #include "../utils.cpp"
 #pragma once
 
@@ -37,8 +37,8 @@ public:
     virtual KeyColorPairMap getTextureTemplateKeys()
     {
         KeyColorPairMap keyColorMap = KeyColorPairMap(2);
-        keyColorMap.add(KeyColorPair('A', color(0, 0, 0)));
-        keyColorMap.add(KeyColorPair('B', color(127, 0, 127)));
+        keyColorMap.add(KeyColorPair('A', LCD_MakeColor(0, 0, 0)));
+        keyColorMap.add(KeyColorPair('B', LCD_MakeColor(127, 0, 127)));
 
         return keyColorMap;
     }

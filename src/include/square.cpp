@@ -1,4 +1,4 @@
-#include <sdk/os/lcd.hpp>
+#include <sdk/os/lcd.h>
 
 void square(int sq_x, int sq_y, int sq_x_size, int sq_y_size, uint16_t sq_color)
 {
