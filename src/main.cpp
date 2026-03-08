@@ -96,8 +96,8 @@ void saveWorldToDisk(BaseBlock**** MAP)
 	    }
 	} 
 
-	int world_file_write = fwrite(world_data_buf, 1, sizeof(world_data_buf), world_file);
-	if (world_file_write < 0)
+	size_t world_file_write = fwrite(world_data_buf, 1, sizeof(world_data_buf), world_file);
+	if (world_file_write != sizeof(world_data_buf))
 	{
 		Debug_Printf(0, 2, true, 0, "Couldn't write file: %d", world_file_write);
 		LCD_Refresh();
@@ -125,7 +125,8 @@ void loadWorldFromDisk(BaseBlock**** MAP)
 
 	uint32_t fileSize = 0;
 
-	int world_file_info = File_FindFirst((const char_const16_t*)u"\\fls0\\MineFx\\world_1.mfxw", &findHandle, nullptr, &findInfoBuf);
+	const char_const16_t filePath[] __attribute__((aligned(4))) = u"\\fls0\\MineFx\\world_1.mfxw";
+	int world_file_info = File_FindFirst(filePath, &findHandle, nullptr, &findInfoBuf);
 
 	if (world_file_info == 0) {
         fileSize = findInfoBuf.fileSize;
@@ -156,9 +157,9 @@ void loadWorldFromDisk(BaseBlock**** MAP)
 
 	uint8_t world_data_buf[fileSize];
 
-	int world_file_read = fread(world_data_buf, 1, fileSize, world_file);
+	size_t world_file_read = fread(world_data_buf, 1, fileSize, world_file);
 
-	if (world_file_read < 0)
+	if (world_file_read != fileSize)
 	{
 		Debug_Printf(0, 1, true, 0, "Couldn't read file: %p", world_file);
 		LCD_Refresh();
