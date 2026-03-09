@@ -1,4 +1,6 @@
 #include <sdk/os/lcd.h>
+#define MAKE_COLOR(r,g,b) RGB_TO_RGB565((r) >> 3, (g) >> 2, (b) >> 3)
+
 #include "../baseBlock.cpp"
 
 class LeaveBlockType : public BaseBlockType
@@ -9,8 +11,8 @@ public:
     virtual KeyColorPairMap getTextureTemplateKeys()
     {
         KeyColorPairMap keyColorMap = KeyColorPairMap(2);
-        keyColorMap.add(KeyColorPair('A', LCD_MakeColor(22, 80, 1)));
-        keyColorMap.add(KeyColorPair('B', LCD_MakeColor(25, 91, 1)));
+        keyColorMap.add(KeyColorPair('A', MAKE_COLOR(22, 80, 1)));
+        keyColorMap.add(KeyColorPair('B', MAKE_COLOR(25, 91, 1)));
 
         return keyColorMap;
     }

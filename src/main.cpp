@@ -3,6 +3,8 @@
 #include <appdef.h>
 #include <sdk/os/debug.h>
 #include <sdk/os/lcd.h>
+#define MAKE_COLOR(r,g,b) RGB_TO_RGB565((r) >> 3, (g) >> 2, (b) >> 3)
+
 #include <sdk/os/input.h>
 
 #include <cstdio>
@@ -54,7 +56,8 @@ BaseBlock* getBlockTypeFromID(uint8_t id)
 
 void saveWorldToDisk(BaseBlock**** MAP)
 {
-    File_MakeDir((const char_const16_t*)u"\\fls0\\MineFx");
+    alignas(4) const char16_t dirPath[] = u"\\fls0\\MineFx";
+	File_Mkdir((const char_const16_t*)dirPath);
 
 	FILE* world_file = fopen("\\fls0\\MineFx\\world_1.mfxw", "wb");
 
@@ -238,14 +241,14 @@ void loadWorldFromDisk(BaseBlock**** MAP)
 
 void drawLoadingScreen()
 {
-	square(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGT, LCD_MakeColor(0, 0, 0));
+	square(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGT, MAKE_COLOR(0, 0, 0));
 	Debug_Printf(0, 0, true, 0, "Loading...");
 	LCD_Refresh();
 }
 
 void drawSavingScreen()
 {
-	square(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGT, LCD_MakeColor(0, 0, 0));
+	square(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGT, MAKE_COLOR(0, 0, 0));
 	Debug_Printf(0, 0, true, 0, "Saving...");
 	LCD_Refresh();
 }
@@ -311,7 +314,7 @@ void renderEntireScreen(BaseBlock**** rn_MAP)
 
 void clearEntireScreen()
 {
-	square(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGT, LCD_MakeColor(110, 114, 127));
+	square(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGT, MAKE_COLOR(110, 114, 127));
 }
 
 int main() {
@@ -399,6 +402,8 @@ int main() {
 							break;
 						case KEYCODE_EQUALS:
 							if (is_down) { cursor_x = 0; cursor_y = 0; cursor_z = 0; }
+							break;
+						default:
 							break;
 					}
 				}
