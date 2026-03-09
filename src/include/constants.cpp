@@ -1,4 +1,5 @@
-#include <sdk/os/lcd.hpp>
+#include <cstdint>
+#include <sdk/os/lcd.h>
 
 int MAP_SIZE_X = 10; // Map size in x coord
 int MAP_SIZE_Y = 10; // Map size in y coord
@@ -15,7 +16,7 @@ int BLOCK_HEIGHT = 85; // Block height in pixel
 int BLOCK_TILES_AVR_WIDTH; // Pixel size of block in width
 int BLOCK_TILES_AVR_HEIGHT; // Pixel size of block in height
 
-int DISPLAY_WIDTH, DISPLAY_HEIGT;
+unsigned int DISPLAY_WIDTH, DISPLAY_HEIGT;
 
 int x_offset, y_offset;
 

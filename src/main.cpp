@@ -1,9 +1,17 @@
-#include <appdef.hpp>
-#include <sdk/calc/calc.hpp>
-#include <sdk/os/lcd.hpp>
-#include <sdk/os/debug.hpp>
-#include <sdk/os/input.hpp>
-#include <sdk/os/file.hpp>
+#include <sys/stat.h>
+#include <cstdint>
+#include <cstring>
+#include <appdef.h>
+#include <sdk/os/debug.h>
+#include <sdk/os/lcd.h>
+#ifndef MAKE_COLOR
+#define MAKE_COLOR(r,g,b) ((((r) >> 3) & 0x1F) << 11 | (((g) >> 2) & 0x3F) << 5 | (((b) >> 3) & 0x1F))
+#endif
+
+#include <sdk/os/input.h>
+
+#include <cstdio>
+#include <sdk/os/file.h>
 
 #include "include/blocks/instances/airBlock.cpp"
 #include "include/blocks/instances/dirtBlock.cpp"
@@ -25,7 +33,6 @@ APP_DESCRIPTION("Nothing more than a simple isometric renderer in a Minecraft st
 APP_AUTHOR("theaddonn <theaddonn@gmail.com>");
 APP_VERSION("0.2.2");
 
-extern "C"
 
 BaseBlock* getBlockTypeFromID(uint8_t id)
 {
@@ -52,13 +59,13 @@ BaseBlock* getBlockTypeFromID(uint8_t id)
 
 void saveWorldToDisk(BaseBlock**** MAP)
 {
-    mkdir("\\fls0\\MineFx");
+    mkdir("\\fls0\\MineFx", 0777);
 
-	int world_file = open("\\fls0\\MineFx\\world_1.mfxw", OPEN_WRITE | OPEN_CREATE);
+	FILE* world_file = fopen("\\fls0\\MineFx\\world_1.mfxw", "wb");
 
-	if (world_file < 0)
+	if (world_file == nullptr)
 	{
-		Debug_Printf(0, 1, true, 0, "Couldn't create file: %d", world_file);
+		Debug_Printf(0, 1, true, 0, "Couldn't create file: %p", world_file);
 		LCD_Refresh();
 		while (true)
 		{
@@ -68,10 +75,7 @@ void saveWorldToDisk(BaseBlock**** MAP)
 
 	uint8_t world_data_buf[WORLD_FORMAT_SIZE + MAP_SIZE_X*MAP_SIZE_Y*MAP_SIZE_Z];
 
-	for (int i = 0; i < sizeof(world_data_buf); i++)
-	{
-		world_data_buf[i] = 0x00;
-	}
+	memset(world_data_buf, 0x00, sizeof(world_data_buf));
 	 
 
 	for (int i = 0; i < WORLD_FORMAT_SIZE; i++)
@@ -97,8 +101,8 @@ void saveWorldToDisk(BaseBlock**** MAP)
 	    }
 	} 
 
-	int world_file_write = write(world_file, world_data_buf, sizeof(world_data_buf));
-	if (world_file_write < 0)
+	size_t world_file_write = fwrite(world_data_buf, 1, sizeof(world_data_buf), world_file);
+	if (world_file_write != sizeof(world_data_buf))
 	{
 		Debug_Printf(0, 2, true, 0, "Couldn't write file: %d", world_file_write);
 		LCD_Refresh();
@@ -107,7 +111,7 @@ void saveWorldToDisk(BaseBlock**** MAP)
 		}
 		
 	}
-	int world_file_close = close(world_file);
+	int world_file_close = fclose(world_file);
 	if (world_file_close < 0)
 	{
 		Debug_Printf(0, 3, true, 0, "Couldn't close file: %d", world_file_close);
@@ -122,11 +126,12 @@ void saveWorldToDisk(BaseBlock**** MAP)
 void loadWorldFromDisk(BaseBlock**** MAP)
 {
     int findHandle;
-	struct findInfo findInfoBuf;
+	struct File_FindInfo findInfoBuf __attribute__((aligned(4)));
 
 	uint32_t fileSize = 0;
 
-	int world_file_info = findFirst(L"\\fls0\\MineFx\\world_1.mfxw", &findHandle, nullptr, &findInfoBuf);
+	alignas(4) const char16_t filePath[] = u"\\fls0\\MineFx\\world_1.mfxw";
+	int world_file_info = File_FindFirst((const char_const16_t*)filePath, &findHandle, nullptr, &findInfoBuf);
 
 	if (world_file_info == 0) {
         fileSize = findInfoBuf.size;
@@ -139,29 +144,29 @@ void loadWorldFromDisk(BaseBlock**** MAP)
 		{
 		}
     }
-	findClose(findHandle);
+	File_FindClose(findHandle);
 
-	int world_file = open("\\fls0\\MineFx\\world_1.mfxw", OPEN_READ);
+	FILE* world_file = fopen("\\fls0\\MineFx\\world_1.mfxw", "rb");
 
-	if (world_file < 0)
+	if (world_file == nullptr)
 	{
-		Debug_Printf(0, 1, true, 0, "Couldn't open file: %d", world_file);
+		Debug_Printf(0, 1, true, 0, "Couldn't open file: %p", world_file);
 		LCD_Refresh();
 		while (true)
 		{
 		}
 	}
 	
-	Debug_Printf(0, 10, true, 0, "Filesize %d", world_file);
+	Debug_Printf(0, 10, true, 0, "Filesize %d", (int)fileSize);
 	LCD_Refresh();
 
 	uint8_t world_data_buf[fileSize];
 
-	int world_file_read = read(world_file, world_data_buf, fileSize);
+	size_t world_file_read = fread(world_data_buf, 1, fileSize, world_file);
 
-	if (world_file_read < 0)
+	if (world_file_read != fileSize)
 	{
-		Debug_Printf(0, 1, true, 0, "Couldn't read file: %d", world_file);
+		Debug_Printf(0, 1, true, 0, "Couldn't read file: %p", world_file);
 		LCD_Refresh();
 		while (true)
 		{
@@ -224,7 +229,7 @@ void loadWorldFromDisk(BaseBlock**** MAP)
 	    }
 	} 
 
-	int world_file_close = close(world_file);
+	int world_file_close = fclose(world_file);
 	if (world_file_close < 0)
 	{
 		Debug_Printf(0, 3, true, 0, "Couldn't close file: %d", world_file_close);
@@ -238,14 +243,14 @@ void loadWorldFromDisk(BaseBlock**** MAP)
 
 void drawLoadingScreen()
 {
-	fillScreen(color(0, 0, 0));
+	square(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGT, MAKE_COLOR(0, 0, 0));
 	Debug_Printf(0, 0, true, 0, "Loading...");
 	LCD_Refresh();
 }
 
 void drawSavingScreen()
 {
-	fillScreen(color(0, 0, 0));
+	square(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGT, MAKE_COLOR(0, 0, 0));
 	Debug_Printf(0, 0, true, 0, "Saving...");
 	LCD_Refresh();
 }
@@ -288,7 +293,7 @@ void renderEntireScreen(BaseBlock**** rn_MAP)
 
 				int calculated_x = grid_pos.xVal;
 				int calculated_y = grid_pos.yVal;
-				if (( DISPLAY_WIDTH <= calculated_x || DISPLAY_HEIGT <= calculated_y || -BLOCK_WIDTH > calculated_x || -BLOCK_HEIGHT > calculated_y) != true)
+				if (( (int)DISPLAY_WIDTH <= calculated_x || (int)DISPLAY_HEIGT <= calculated_y || -BLOCK_WIDTH > calculated_x || -BLOCK_HEIGHT > calculated_y) != true)
 				{
 					if (cu_block_type->isVisable() &&
                     ((y == 0 || !rn_MAP[y - 1][x][z]->type->isVisable()) ||
@@ -311,11 +316,10 @@ void renderEntireScreen(BaseBlock**** rn_MAP)
 
 void clearEntireScreen()
 {
-	fillScreen(color(110, 114, 127));
+	square(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGT, MAKE_COLOR(110, 114, 127));
 }
 
-void main() {
-	calcInit(); //backup screen and init some variables
+int main() {
 	
 	initConstants();
 
@@ -344,141 +348,79 @@ void main() {
 
 	LCD_Refresh();
 
+
+    bool key_up = false;
+    bool key_down = false;
+    bool key_left = false;
+    bool key_right = false;
+
 	while (running) {
-
-		if (Input_IsAnyKeyDown())
+		struct Input_Event event __attribute__((aligned(4)));
+		while (GetInput(&event, 0, 0x10) == 0)
 		{
-			uint32_t key1, key2;    //First create variables
-			getKey(&key1, &key2);    //then read the keys
-
-    		if(testKey(key1, key2, KEY_CLEAR)){ //Use testKey() to test if a specific key is pressed
-    		    running = false;
-				break;
-    		}
-    		else if(testKey(key1, key2, KEY_UP)){
-				y_offset += CAMERA_OFFSET_CHANGE;
-    		}
-    		else if(testKey(key1, key2, KEY_DOWN)){
-				y_offset -= CAMERA_OFFSET_CHANGE;
-    		}
-    		else if(testKey(key1, key2, KEY_LEFT)){
-				x_offset += CAMERA_OFFSET_CHANGE;
-    		}
-    		else if(testKey(key1, key2, KEY_RIGHT)){
-				x_offset -= CAMERA_OFFSET_CHANGE;
-    		}
-			else if(testKey(key1, key2, KEY_ADD)){
-				BLOCK_WIDTH += 16;
-				BLOCK_HEIGHT += 17;
-				calcScaleConstants();
-    		}
-			else if(testKey(key1, key2, KEY_SUBTRACT)){
-				BLOCK_WIDTH -= 16;
-				BLOCK_HEIGHT -= 17;
-				calcScaleConstants();
-    		}
-			else if(testKey(key1, key2, KEY_3)){
-				if (cursor_x < MAP_SIZE_X)
-				{
-					cursor_x++;
-				}
-    		}
-			else if(testKey(key1, key2, KEY_7)){
-				if (cursor_x > 0)
-				{
-					cursor_x--;
-				}
-    		}
-			else if(testKey(key1, key2, KEY_1)){
-				if (cursor_z < MAP_SIZE_Z)
-				{
-					cursor_z++;
-				}
-    		}
-			else if(testKey(key1, key2, KEY_9)){
-				if (cursor_z > 0)
-				{
-					cursor_z--;
-				}
-    		}
-			else if(testKey(key1, key2, KEY_Y)){
-				if (cursor_y < MAP_SIZE_Y)
-				{
-					cursor_y++;
-				}
-    		}
-			else if(testKey(key1, key2, KEY_X)){
-				if (cursor_y > 0)
-				{
-					cursor_y--;
-				}
-    		}
-			else if(testKey(key1, key2, KEY_BACKSPACE)){
-    			if (cursor_x >= 0 && cursor_x < MAP_SIZE_X &&
-				    cursor_y >= 0 && cursor_y < MAP_SIZE_Y &&
-				    cursor_z >= 0 && cursor_z < MAP_SIZE_Z
-				)
-				{
-				    delete MAP[cursor_y][cursor_x][cursor_z];
-				    MAP[cursor_y][cursor_x][cursor_z] = new AirBlock();
-				}
-    		}
-			else if (testKey(key1, key2, KEY_COMMA))
-			{
-				BLOCK_PALETTE_INDEX++;
-				if (BLOCK_PALETTE_INDEX > 5)
-				{
-					BLOCK_PALETTE_INDEX = 0;
+			if (event.type == EVENT_KEY) {
+				bool is_down = (event.data.key.direction == KEY_PRESSED);
+				bool is_up = (event.data.key.direction == KEY_RELEASED);
+				
+				if (is_down || is_up) {
+					bool state = is_down;
+					switch (event.data.key.keyCode) {
+						case KEYCODE_UP: key_up = state; break;
+						case KEYCODE_DOWN: key_down = state; break;
+						case KEYCODE_LEFT: key_left = state; break;
+						case KEYCODE_RIGHT: key_right = state; break;
+						case KEYCODE_POWER_CLEAR: if (is_down) running = false; break;
+						case KEYCODE_PLUS: if (is_down) { BLOCK_WIDTH += 16; BLOCK_HEIGHT += 17; calcScaleConstants(); } break;
+						case KEYCODE_MINUS: if (is_down) { BLOCK_WIDTH -= 16; BLOCK_HEIGHT -= 17; calcScaleConstants(); } break;
+						case KEYCODE_3: if (is_down && cursor_x < MAP_SIZE_X) cursor_x++; break;
+						case KEYCODE_7: if (is_down && cursor_x > 0) cursor_x--; break;
+						case KEYCODE_1: if (is_down && cursor_z < MAP_SIZE_Z) cursor_z++; break;
+						case KEYCODE_9: if (is_down && cursor_z > 0) cursor_z--; break;
+						case KEYCODE_Y: if (is_down && cursor_y < MAP_SIZE_Y) cursor_y++; break;
+						case KEYCODE_X: if (is_down && cursor_y > 0) cursor_y--; break;
+						case KEYCODE_BACKSPACE:
+							if (is_down && cursor_x >= 0 && cursor_x < MAP_SIZE_X && cursor_y >= 0 && cursor_y < MAP_SIZE_Y && cursor_z >= 0 && cursor_z < MAP_SIZE_Z) {
+								delete MAP[cursor_y][cursor_x][cursor_z];
+								MAP[cursor_y][cursor_x][cursor_z] = new AirBlock();
+							}
+							break;
+						case KEYCODE_COMMA:
+							if (is_down) {
+								BLOCK_PALETTE_INDEX++;
+								if (BLOCK_PALETTE_INDEX > 5) BLOCK_PALETTE_INDEX = 0;
+							}
+							break;
+						case KEYCODE_EXE:
+							if (is_down) {
+								switch (BLOCK_PALETTE_INDEX) {
+									case 0: delete MAP[cursor_y][cursor_x][cursor_z]; MAP[cursor_y][cursor_x][cursor_z] = new DirtBlock(); break;
+									case 1: delete MAP[cursor_y][cursor_x][cursor_z]; MAP[cursor_y][cursor_x][cursor_z] = new GrassBlock(); break;
+									case 2: delete MAP[cursor_y][cursor_x][cursor_z]; MAP[cursor_y][cursor_x][cursor_z] = new LeaveBlock(); break;
+									case 3: delete MAP[cursor_y][cursor_x][cursor_z]; MAP[cursor_y][cursor_x][cursor_z] = new LogBlock(); break;
+									case 4: delete MAP[cursor_y][cursor_x][cursor_z]; MAP[cursor_y][cursor_x][cursor_z] = new PathBlock(); break;
+									case 5: delete MAP[cursor_y][cursor_x][cursor_z]; MAP[cursor_y][cursor_x][cursor_z] = new StoneBlock(); break;
+								}
+							}
+							break;
+						case KEYCODE_EQUALS:
+							if (is_down) { cursor_x = 0; cursor_y = 0; cursor_z = 0; }
+							break;
+						default:
+							break;
+					}
 				}
 			}
-			else if(testKey(key1, key2, KEY_EXE)){
-    			switch (BLOCK_PALETTE_INDEX)
-				{
-				case 0:
-				    delete MAP[cursor_y][cursor_x][cursor_z];
-				    MAP[cursor_y][cursor_x][cursor_z] = new DirtBlock();
-					break;
-				
-				case 1:
-				    delete MAP[cursor_y][cursor_x][cursor_z];
-				    MAP[cursor_y][cursor_x][cursor_z] = new GrassBlock();
-					break;
-
-				case 2:
-				    delete MAP[cursor_y][cursor_x][cursor_z];
-				    MAP[cursor_y][cursor_x][cursor_z] = new LeaveBlock();
-					break;
-				
-				case 3:
-				    delete MAP[cursor_y][cursor_x][cursor_z];
-				    MAP[cursor_y][cursor_x][cursor_z] = new LogBlock();
-					break;
-
-				case 4:
-				    delete MAP[cursor_y][cursor_x][cursor_z];
-				    MAP[cursor_y][cursor_x][cursor_z] = new PathBlock();
-					break;
-
-				case 5:
-				    delete MAP[cursor_y][cursor_x][cursor_z];
-				    MAP[cursor_y][cursor_x][cursor_z] = new StoneBlock();
-					break;
-
-				default:
-					break;
-				}
-    		}
-			else if (testKey(key1, key2, KEY_EQUALS))
-			{
-				cursor_x = 0;
-				cursor_y = 0;
-				cursor_z = 0;
-			}
-			
-			clearEntireScreen();
-			renderEntireScreen(MAP);
-			LCD_Refresh();
 		}
+
+		if (key_up) y_offset += CAMERA_OFFSET_CHANGE;
+		if (key_down) y_offset -= CAMERA_OFFSET_CHANGE;
+		if (key_left) x_offset += CAMERA_OFFSET_CHANGE;
+		if (key_right) x_offset -= CAMERA_OFFSET_CHANGE;
+
+		clearEntireScreen();
+		renderEntireScreen(MAP);
+		LCD_Refresh();
+
 	}
 
 	drawSavingScreen();
@@ -497,5 +439,5 @@ void main() {
 
 	LCD_ClearScreen();
 	LCD_Refresh();
-	calcEnd(); //restore screen and do stuff
+	return 0;
 }

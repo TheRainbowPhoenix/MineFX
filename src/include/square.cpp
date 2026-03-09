@@ -1,4 +1,4 @@
-#include <sdk/os/lcd.hpp>
+#include <sdk/os/lcd.h>
 
 void square(int sq_x, int sq_y, int sq_x_size, int sq_y_size, uint16_t sq_color)
 {
@@ -7,7 +7,7 @@ void square(int sq_x, int sq_y, int sq_x_size, int sq_y_size, uint16_t sq_color)
 		int max_x_size = sq_x_size + sq_x;
 		int max_y_size = sq_y_size + sq_y;
 
-		if ((max_x_size <= DISPLAY_WIDTH) && (max_y_size <= DISPLAY_HEIGT))
+		if ((max_x_size <= (int)DISPLAY_WIDTH) && (max_y_size <= (int)DISPLAY_HEIGT))
 		{
 			for (int current_x = sq_x; current_x < max_x_size; ++current_x)
 			{

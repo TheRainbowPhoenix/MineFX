@@ -1,4 +1,9 @@
-#include <sdk/calc/calc.hpp>
+#include <sdk/os/lcd.h>
+#ifndef MAKE_COLOR
+#define MAKE_COLOR(r,g,b) ((((r) >> 3) & 0x1F) << 11 | (((g) >> 2) & 0x3F) << 5 | (((b) >> 3) & 0x1F))
+#endif
+
+
 #include "../utils.cpp"
 #pragma once
 
@@ -8,7 +13,7 @@ public:
     virtual uint8_t id(){ return 0x00; }
 
     virtual TemplatePatternMap getTextureTemplatePattern()
-    { 
+    {
         static char textureTemplatePattern[17][16] = {
             {'#', '#', '#', '#', '#', '#', '#', 'A', 'A', '#', '#', '#', '#', '#', '#', '#'},
             {'#', '#', '#', '#', '#', 'A', 'A', 'B', 'B', 'A', 'A', '#', '#', '#', '#', '#'},
@@ -37,8 +42,8 @@ public:
     virtual KeyColorPairMap getTextureTemplateKeys()
     {
         KeyColorPairMap keyColorMap = KeyColorPairMap(2);
-        keyColorMap.add(KeyColorPair('A', color(0, 0, 0)));
-        keyColorMap.add(KeyColorPair('B', color(127, 0, 127)));
+        keyColorMap.add(KeyColorPair('A', MAKE_COLOR(0, 0, 0)));
+        keyColorMap.add(KeyColorPair('B', MAKE_COLOR(127, 0, 127)));
 
         return keyColorMap;
     }

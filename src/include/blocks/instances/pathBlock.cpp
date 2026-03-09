@@ -1,3 +1,8 @@
+#include <sdk/os/lcd.h>
+#ifndef MAKE_COLOR
+#define MAKE_COLOR(r,g,b) ((((r) >> 3) & 0x1F) << 11 | (((g) >> 2) & 0x3F) << 5 | (((b) >> 3) & 0x1F))
+#endif
+
 #include "../baseBlock.cpp"
 
 class PathBlockType : public BaseBlockType
@@ -6,7 +11,7 @@ public:
     virtual uint8_t id(){ return 0x06; }
 
     virtual TemplatePatternMap getTextureTemplatePattern()
-    { 
+    {
         static char textureTemplatePattern[17][16] = {
             {'#', '#', '#', '#', '#', '#', '#', 'A', 'A', '#', '#', '#', '#', '#', '#', '#'},
             {'#', '#', '#', '#', '#', 'A', 'A', 'B', 'B', 'A', 'A', '#', '#', '#', '#', '#'},
@@ -34,10 +39,10 @@ public:
     virtual KeyColorPairMap getTextureTemplateKeys()
     {
         KeyColorPairMap keyColorMap = KeyColorPairMap(4);
-        keyColorMap.add(KeyColorPair('A', color(66, 55, 18)));
-        keyColorMap.add(KeyColorPair('B', color(73, 61, 20)));
-        keyColorMap.add(KeyColorPair('C', color(37, 21, 4)));
-        keyColorMap.add(KeyColorPair('D', color(54, 31, 6)));
+        keyColorMap.add(KeyColorPair('A', MAKE_COLOR(66, 55, 18)));
+        keyColorMap.add(KeyColorPair('B', MAKE_COLOR(73, 61, 20)));
+        keyColorMap.add(KeyColorPair('C', MAKE_COLOR(37, 21, 4)));
+        keyColorMap.add(KeyColorPair('D', MAKE_COLOR(54, 31, 6)));
 
         return keyColorMap;
     }
