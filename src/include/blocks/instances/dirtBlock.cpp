@@ -1,5 +1,7 @@
 #include <sdk/os/lcd.h>
-#define MAKE_COLOR(r,g,b) RGB_TO_RGB565((r) >> 3, (g) >> 2, (b) >> 3)
+#ifndef MAKE_COLOR
+#define MAKE_COLOR(r,g,b) ((((r) >> 3) & 0x1F) << 11 | (((g) >> 2) & 0x3F) << 5 | (((b) >> 3) & 0x1F))
+#endif
 
 #include "../baseBlock.cpp"
 

@@ -1,9 +1,12 @@
+#include <sys/stat.h>
 #include <cstdint>
 #include <cstring>
 #include <appdef.h>
 #include <sdk/os/debug.h>
 #include <sdk/os/lcd.h>
-#define MAKE_COLOR(r,g,b) RGB_TO_RGB565((r) >> 3, (g) >> 2, (b) >> 3)
+#ifndef MAKE_COLOR
+#define MAKE_COLOR(r,g,b) ((((r) >> 3) & 0x1F) << 11 | (((g) >> 2) & 0x3F) << 5 | (((b) >> 3) & 0x1F))
+#endif
 
 #include <sdk/os/input.h>
 
@@ -56,8 +59,7 @@ BaseBlock* getBlockTypeFromID(uint8_t id)
 
 void saveWorldToDisk(BaseBlock**** MAP)
 {
-    alignas(4) const char16_t dirPath[] = u"\\fls0\\MineFx";
-	File_Mkdir((const char_const16_t*)dirPath);
+    mkdir("\\fls0\\MineFx", 0777);
 
 	FILE* world_file = fopen("\\fls0\\MineFx\\world_1.mfxw", "wb");
 
@@ -291,7 +293,7 @@ void renderEntireScreen(BaseBlock**** rn_MAP)
 
 				int calculated_x = grid_pos.xVal;
 				int calculated_y = grid_pos.yVal;
-				if (( DISPLAY_WIDTH <= calculated_x || DISPLAY_HEIGT <= calculated_y || -BLOCK_WIDTH > calculated_x || -BLOCK_HEIGHT > calculated_y) != true)
+				if (( (int)DISPLAY_WIDTH <= calculated_x || (int)DISPLAY_HEIGT <= calculated_y || -BLOCK_WIDTH > calculated_x || -BLOCK_HEIGHT > calculated_y) != true)
 				{
 					if (cu_block_type->isVisable() &&
                     ((y == 0 || !rn_MAP[y - 1][x][z]->type->isVisable()) ||
